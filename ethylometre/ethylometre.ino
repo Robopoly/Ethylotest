@@ -20,12 +20,12 @@ void print_high_score();
 #define GREEN_LED 8
 
 // Limits to check if IR reads anything.
-#define IR_STRAW A0
+#define IR_STRAW A5
 #define STRAW 500
-#define NO_STRAW 320
+#define NO_STRAW 350
 
 // Time during which the result of the test will be shown.
-#define ALCOHOL_SENSOR A1
+#define ALCOHOL_SENSOR A4
 #define RESULT_SHOW_TIME 10000
 #define ALCOHOL_VALUE 900
 #define MEASURES_AMOUNT 100
@@ -38,10 +38,11 @@ unsigned char i = 0;
 unsigned int straw = 0;
 unsigned long alcohol = 0;
 unsigned int high_score =  FAKE_HIGH;
-unsigned score = 0;
+unsigned int score = 0;
 unsigned int empty_sensor = 0;
 int k;
 
+int debug = 1;
 
 // pins for the TLC5925I
 #define LE 3
@@ -55,6 +56,10 @@ int k;
 
 void setup()
 {
+  if(debug == 1)
+    Serial.begin(9600);
+
+    
   pinMode(13,OUTPUT);
   pinMode(RED_LED, OUTPUT);
   pinMode(ORANGE_LED, OUTPUT);
@@ -74,6 +79,14 @@ void setup()
 
 void loop()
 {
+/*  if(debug == 1)
+  {
+    Serial.println("alcohol");
+    Serial.print(analogRead(ALCOHOL_SENSOR));
+    Serial.println("straw");
+    Serial.print(analogRead(IR_STRAW));
+  }
+  */
   print_high_score();
   alcohol = analogRead(ALCOHOL_SENSOR);
   // as long as the sensor is reading more than MIN_ALCOHOL we wait
@@ -94,20 +107,34 @@ void loop()
     print_high_score();
   } 
    
-  
+  if(debug == 1)
+  {
+    Serial.print("Found a straw ");
+    Serial.println(straw);
+  }
   digitalWrite(OE, HIGH); // turning the leds off
   // Straw has been inserted, waiting 1 sec before we read the sensor
   delay(1000);
 
   digitalWrite(GREEN_LED, LOW);
   digitalWrite(ORANGE_LED, HIGH);
-  delay(1000); // leaving drunk people 400 ms before they blow
+  delay(1000);
+
+  alcohol = 0;
   for(i = 0; i < MEASURES_AMOUNT; i++)
   {
     alcohol += analogRead(ALCOHOL_SENSOR);
     delay(5);
   }
-  
+
+  if(debug == 1)
+  {
+    Serial.print("alcohol sum on ");
+    Serial.print(MEASURES_AMOUNT);
+    Serial.print(" readings ");
+    Serial.println(alcohol);
+  }
+
   // measures have been made, turning orange led off, red on
   digitalWrite(ORANGE_LED, LOW);
   digitalWrite(RED_LED, HIGH);
@@ -119,10 +146,20 @@ void loop()
     alcohol = HIGH_ALCOHOL;
   if(alcohol <= LOW_ALCOHOL)
     alcohol = LOW_ALCOHOL;
-  
+
+  if(debug == 1)
+  {
+    Serial.print("Found average alcohol ");
+    Serial.println(alcohol);
+  }
   // normalize the value over 32 leds
-  score = 32*(alcohol - LOW_ALCOHOL)/(HIGH_ALCOHOL - LOW_ALCOHOL);
-  
+  score = (int)(32*(double)((alcohol - LOW_ALCOHOL))/(HIGH_ALCOHOL - LOW_ALCOHOL));
+
+  if(debug == 1)
+  {
+    Serial.print("score   ");
+    Serial.println(score);
+  }
   if(score > high_score)
     high_score = score; // changing high score if needed.
     
